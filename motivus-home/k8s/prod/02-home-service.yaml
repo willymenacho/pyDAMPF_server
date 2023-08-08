@@ -1,0 +1,25 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  namespace: home
+  name: motivus-managed-cert
+spec:
+  domains:
+    - motivus.cl
+    - www.motivus.cl
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: home-deployment
+  name: home
+  namespace: home
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 80
+  selector:
+    app: home
+  type: NodePort

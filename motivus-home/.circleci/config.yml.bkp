@@ -1,0 +1,117 @@
+version: 2.1
+orbs:
+  node: circleci/node@4.1.0
+
+defaults: &defaults
+  working_directory: ~/repo
+  resource_class: large
+  executor: 
+    name: node/default
+    tag: '16.14'
+
+jobs:
+  test:
+    <<: *defaults
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "yarn.lock" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+      - run: yarn install
+      - run:
+          name: Run tests
+          command: yarn test
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "yarn.lock" }}
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - .
+  build:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: Git config
+          command: |
+            git config --global user.email "circleci@motivus.cl"
+            git config --global user.name "CircleCI"
+      - run:
+          name: Prepare release versioning
+          command: yarn run release
+      - run:
+          name: Build site
+          command: CI="" yarn build
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - .
+  publish:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run: sudo yarn global add aws-cdk@^2.27.0
+      - run: CI="" cd deployment && yarn install && yarn build
+      - run:
+          name: Publish site
+          command: cd deployment && cdk bootstrap --force && cdk deploy --progress events --ci --require-approval never
+      - add_ssh_keys:
+          fingerprints:
+            - "61:9e:af:6d:8a:cb:cc:61:56:43:f3:be:ba:ae:73:bd"
+      - run:
+          name: Repo Versioning
+          command: |
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+            git push --follow-tags origin $CIRCLE_BRANCH
+
+workflows:
+  main:
+    when:
+      not:
+        equal: [api, << pipeline.trigger_source >>]
+    jobs:
+      - test:
+          filters:
+            branches:
+              only:
+                - develop
+                - main
+      - build:
+          requires:
+            - test
+          filters:
+            branches:
+              only:
+                - main
+      - publish:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - main
+  cms:
+    when:
+      equal: [api, << pipeline.trigger_source >>]
+    jobs:
+      - deploy-approval:
+          type: approval
+          filters:
+            branches:
+              only:
+                - main
+      - test:
+          requires:
+            - deploy-approval
+      - build:
+          requires:
+            - test
+      - publish:
+          requires:
+            - build

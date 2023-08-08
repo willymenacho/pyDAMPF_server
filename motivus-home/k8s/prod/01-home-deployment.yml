@@ -1,0 +1,25 @@
+# az postgres flexible-server create -g aks_test_clu_group -n wb-db --public-access all -l eastus --sku Standard_B1ms --tier Burstable
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: home-deployment
+  namespace: home
+  labels:
+    app: home-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: home
+  template:
+    metadata:
+      labels:
+        app: home
+    spec:
+      containers:
+        - name: home
+          image: southamerica-west1-docker.pkg.dev/motivus-257216/motivus-repo/home:latest
+          imagePullPolicy: "Always"
+          ports:
+            - containerPort: 80

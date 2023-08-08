@@ -1,0 +1,17 @@
+#tutorial
+#https://developertea.com/blog/2020-10-19-docker-update-for-gatsby
+
+FROM node:18 AS builder
+
+EXPOSE 8000 9929 9230
+
+ARG MARKETPLACE_API_URL
+ENV GATSBY_MARKETPLACE_API_URL=$MARKETPLACE_API_URL
+
+WORKDIR /app
+RUN yarn global add gatsby-cli 
+COPY . ./
+
+RUN yarn install
+
+CMD ["yarn", "develop", "-H", "0.0.0.0"]
