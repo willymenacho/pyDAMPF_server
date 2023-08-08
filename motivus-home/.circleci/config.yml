@@ -1,0 +1,153 @@
+version: 2.1
+orbs:
+  node: circleci/node@4.1.0
+  python: circleci/python@0.2.1
+  gcp-gke: circleci/gcp-gke@2.0.0
+  gcr: circleci/gcp-gcr@0.15.1
+  gcp-cli: circleci/gcp-cli@3.0.1
+
+defaults: &defaults
+  working_directory: ~/repo
+  resource_class: large
+  executor:
+    name: node/default
+    tag: '16.14'
+
+jobs:
+  test:
+    <<: *defaults
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "yarn.lock" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+      - run: yarn install
+      - run:
+          name: Run tests
+          command: yarn test
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "yarn.lock" }}
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - .
+
+  deploy:
+    machine:
+      docker_layer_caching: false
+    parameters:
+      service-name:
+        default: ci_marketplace
+        description: Service name used to deploy to kubernetes
+        type: string
+      namespace:
+        default: marketplace
+        description: Kubernetes namespace
+        type: string
+      cluster-name:
+        default: motivus-cluster
+        description: Kubernetes cluster name
+        type: string
+      cluster-context:
+        default: motivus-cluster
+        description: Kubernetes cluster context
+        type: string
+      environment:
+        default: prod
+        description: Deployment environment (i.e. Skaffold profile)
+        type: string
+      dockerhub_user:
+        default: DOCKER_LOGIN
+        description: The name of the env var containing dockerhub user for authenticated pulls
+        type: string
+      dockerhub_password:
+        default: DOCKER_PASSWORD
+        description: The name of the env var containing dockerhub password for authenticated pulls
+        type: string
+    steps:
+      - checkout
+      #- pull_submodules
+      # - docker/check:
+      #     docker-username: << parameters.dockerhub_user >>
+      #     docker-password: << parameters.dockerhub_password >>
+      #- gcp-gke/install
+      #- gcp-gke/init
+      - gcr/gcr-auth:
+          registry-url: southamerica-west1-docker.pkg.dev
+      - run:
+          name: login docker registry
+          command: gcloud auth configure-docker southamerica-west1-docker.pkg.dev
+      - run:
+          name: Install Kustomize
+          command: curl -Lo kustomize https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v3.2.3/kustomize_kustomize.v3.2.3_linux_amd64 && chmod +x kustomize && sudo mv kustomize /usr/local/bin
+      - run:
+          name: Install Skaffold
+          command: curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/v1.39.2/skaffold-linux-amd64 && chmod +x skaffold && sudo mv skaffold /usr/local/bin
+      #- run:
+      #    name: Update gcloud
+      #    command: gcloud components update
+      - run:
+          name: Authorise GKE
+          command: gcloud components install gke-gcloud-auth-plugin &&
+            gcloud container clusters get-credentials << parameters.cluster-name >> --zone=southamerica-west1
+          environment:
+            USE_GKE_GCLOUD_AUTH_PLUGIN: 'True'
+      - run:
+          name: Set cluster details
+          command: gcloud components install kubectl && kubectl config set-context << parameters.cluster-context >> --namespace=<< parameters.namespace >>
+      # - run:
+      #     name: Run pre-deployment jobs (will build)
+      #     command: skaffold run -f ./skaffold.yaml -p << parameters.environment >>-pre-deployment
+      # - run:
+      #     name: Wait for migrations job to succeed
+      #     command: kubectl wait --for=condition=complete --timeout=300s job/<< parameters.service-name >>-migrations --namespace=<< parameters.namespace >>
+      # - run:
+      #     name: Wait for collectstatic job to succeed
+      #     command: kubectl wait --for=condition=complete --timeout=300s job/<< parameters.service-name >>-collectstatic --namespace=<< parameters.namespace >>
+      - run:
+          name: Enable Docker deamon
+          command: sudo ./docker_enable.sh
+      - run:
+          name: Auth Docker
+          command: docker-credential-gcr configure-docker --registries=southamerica-west1-docker.pkg.dev
+      - run:
+          name: Auth Docker token
+          command: docker-credential-gcr config --token-source="gcloud"
+      - run:
+          name: Rollout updated deployment
+          command: skaffold run -f ./skaffold.yaml -p << parameters.environment >>
+      # - run:
+      #     name: Wait for rollout of deployment to succeed
+      #     command: kubectl rollout status deployment/<< parameters.service-name >>-django
+
+workflows:
+  main:
+    when:
+      not:
+        equal: [api, << pipeline.trigger_source >>]
+    jobs:
+      #- test
+      - deploy:
+          filters:
+            branches:
+              only:
+                - main
+          #requires:
+          #  - test
+  cms:
+    when:
+      equal: [api, << pipeline.trigger_source >>]
+    jobs:
+      - deploy-approval:
+          type: approval
+          filters:
+            branches:
+              only:
+                - main
+      - test:
+          requires:
+            - deploy-approval

@@ -1,0 +1,46 @@
+apiVersion: skaffold/v2beta29
+kind: Config
+metadata:
+  name: pydampf
+profiles:
+  - name: dev
+    deploy:
+      helm:
+        releases:
+          - name: jupyter-lab-pydampf
+            namespace: pydampf
+            createNamespace: true
+            repo: https://jupyterhub.github.io/helm-chart/
+            remoteChart: jupyterhub
+            version: 1.2.0
+            valuesFiles:
+              - dev/chart-config.yaml
+            recreatePods: false
+            skipBuildDependencies: false
+            useHelmSecrets: false
+            wait: false
+    # portForward:
+    #   - port: 80
+    #     namespace: pydampf
+    #     localPort: 32674
+    #     resourceName: proxy-public
+    #     resourceType: Service
+  # El service account debe tener permisos en IAM y crear un cluster role binding antes de hacer el deploy en gcp
+  # gcloud projects add-iam-policy-binding motivus-257216 --member=user:fernando@motivus.cl --role=roles/container.admin
+  # kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-admin --user=fernando@motivus.cl
+  - name: gcp
+    deploy:
+      helm:
+        releases:
+          - name: jupyter-lab-pydampf
+            namespace: pydampf
+            createNamespace: true
+            repo: https://jupyterhub.github.io/helm-chart/
+            remoteChart: jupyterhub
+            version: 1.2.0
+            valuesFiles:
+              - gcp/chart-config.yaml
+            upgradeOnChange: true
+            skipBuildDependencies: false
+            useHelmSecrets: false
+            wait: false

@@ -1,0 +1,11 @@
+version: "3.2"
+services:
+    worker:
+        image: motivus/worker:1.2.0
+        network_mode: "host"
+        env_file: .env
+        restart: unless-stopped
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        tty: true
+

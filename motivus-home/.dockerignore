@@ -1,0 +1,7 @@
+node_modules
+deployment
+.cache
+.vscode
+.circleci
+docker-compose.yml
+

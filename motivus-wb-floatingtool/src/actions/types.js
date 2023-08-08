@@ -1,0 +1,24 @@
+export const SET_TOKEN = 'SET_TOKEN'
+export const UNSET_TOKEN = 'UNSET_TOKEN'
+export const SET_USER = 'SET_USER'
+export const SET_PROCESSING_PREFERENCES = 'SET_PROCESSING_PREFERENCES'
+export const SET_THREAD_COUNT = 'SET_THREAD_COUNT'
+
+export const UNSET_USER = 'UNSET_USER'
+export const LOG_OUT_USER = 'LOG_OUT_USER'
+export const USER_LOADED = 'USER_LOADED'
+
+export const END_PROCESSING = 'END_PROCESSING'
+export const STOP_PROCESSING = 'STOP_PROCESSING'
+export const START_PROCESSING = 'START_PROCESSING'
+export const SET_RESULT = 'SET_RESULT'
+export const SET_INPUT = 'SET_INPUT'
+export const REQUEST_NEW_INPUT = 'REQUEST_NEW_INPUT'
+
+export const SET_SOCKET_MESSAGE = 'SET_SOCKET_MESSAGE'
+export const SOCKET_READY = 'SOCKET_READY'
+export const SOCKET_CLOSED = 'SOCKET_CLOSED'
+
+export const SET_STATS = 'SET_STATS'
+
+export const ABORT_TASK = 'ABORT_TASK'
