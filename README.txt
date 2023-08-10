@@ -2,7 +2,7 @@
 ============================ INSTALACION Y EJECUCION ================================
 =====================================================================================
 # EN UNA TERMINAL
-	git clone https://github.com/m0tivus/jupyterlab-pydampf
+	git clone https://github.com/willymenacho/pyDAMPF_server.git
 	cd pyDAMPF_server
 	python execute.py
 
