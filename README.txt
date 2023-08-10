@@ -11,6 +11,9 @@
 # COPIAMOS EL ULTIMO O PENULTIMO URL Y LO COPIAMOS EN EL NAVEGADOR DE PREFERENCIA (FIREFOX)
 # ENTRAMOS A WORK Y EJECUTAMOS EL UNICO NOTEBOOK QUE APARECERA
 
+        ####### YA DEBERIA ENCONTRARSE EN EL PROGRAMA PYDAMPF ###########
+
+
 
 ================= RESETEO DE LA CARPETA DEL USUARIO SI ASI LO DESEE =================
 #en la terminal "JupyterLab pyDAMPF"
@@ -18,7 +21,7 @@
 	 	 sudo  docker-compose up
 
 =====================================================================================
-============================== ESO ES TODO PARA USAR PYDAMPF ========================
+======================== ESO ES TODO PARA USAR PYDAMPF_server =======================
 =====================================================================================
 
 
